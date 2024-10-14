@@ -1,7 +1,11 @@
 package com.workintech.zoo.controller;
 
+import com.workintech.zoo.dto.KangarooResponse;
 import com.workintech.zoo.entity.Kangaroo;
+import com.workintech.zoo.exceptions.ZooException;
 import jakarta.annotation.PostConstruct;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -26,24 +30,47 @@ public class KangarooController {
 
     @GetMapping("/{id}")
     public Kangaroo getKangarooById(@PathVariable int id){
-        //TODO [ezgi] check id is not negative
-        //TODO [ezgi] check if id exist in map
+        if(id <= 0){
+            throw new ZooException("Id cannot be negative", HttpStatus.BAD_REQUEST);
+        }
+        if (!kangaroos.containsKey(id)){
+            throw new ZooException("Given id doesn't exist", HttpStatus.NOT_FOUND);
+        }
         return  kangaroos.get(id);
     }
 
     @PostMapping("")
-    public void addKangaroo(@RequestBody Kangaroo kangaroo){
+    public ResponseEntity<Kangaroo> addKangaroo(@RequestBody Kangaroo kangaroo){
+        //null check
+        if(kangaroo.getId() <= 0
+                || kangaroo.getName() == null
+                || kangaroo.getHeight() <= 0
+                || kangaroo.getWeight() <= 0
+                || kangaroo.getIsAggressive() == null
+                || kangaroo.getGender() == null ){
+            throw new ZooException("Invalid kangaroo data", HttpStatus.BAD_REQUEST);
+        }
         kangaroos.put(kangaroo.getId(), kangaroo);
+        return new ResponseEntity<>(kangaroo, HttpStatus.OK);
     }
 
     @PutMapping("/{id}")
-    public void updateKangaroo(@PathVariable int id, @RequestBody Kangaroo kangaroo){
+    public ResponseEntity<Kangaroo> updateKangaroo(@PathVariable int id, @RequestBody Kangaroo kangaroo){
         kangaroos.replace(kangaroo.getId(), kangaroo);
+        return new ResponseEntity<>(kangaroo, HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
-    public void deleteKangaroo(@PathVariable int id){
+    public ResponseEntity<KangarooResponse> deleteKangaroo(@PathVariable int id){
+        //optional if controls:
+        if(id <= 0){
+            throw new ZooException("Id cannot be negative", HttpStatus.BAD_REQUEST);
+        }
+        if(!kangaroos.containsKey(id)){
+            throw new ZooException("Given id doesn't exist", HttpStatus.NOT_FOUND);
+        }
         kangaroos.remove(id);
+        return new ResponseEntity<>(new KangarooResponse(id, "is deleted"), HttpStatus.OK);
     }
 
 }

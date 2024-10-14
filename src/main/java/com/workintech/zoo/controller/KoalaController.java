@@ -1,7 +1,11 @@
 package com.workintech.zoo.controller;
 
+import com.workintech.zoo.dto.KoalaResponse;
 import com.workintech.zoo.entity.Koala;
+import com.workintech.zoo.exceptions.ZooException;
 import jakarta.annotation.PostConstruct;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -16,7 +20,7 @@ public class KoalaController {
     @PostConstruct
     public void init(){
         koalas = new HashMap<>();
-        koalas.put(1, new Koala(1, "poncik", 3, 15, "female"));
+        koalas.put(1, new Koala(1, "poncik", 15, 3, "female"));
     }
 
     @GetMapping("")
@@ -26,23 +30,42 @@ public class KoalaController {
 
     @GetMapping("/{id}")
     public Koala getKoalaById(@PathVariable int id){
-        //TODO [ezgi] check id is not negative
-        //TODO [ezgi] check if id exist in map
+        if(id <= 0){
+            throw new ZooException("Id cannot be negative", HttpStatus.BAD_REQUEST);
+        }
+        if (!koalas.containsKey(id)){
+            throw new ZooException("Given id doesn't exist", HttpStatus.NOT_FOUND);
+        }
         return koalas.get(id);
     }
 
     @PostMapping("")
-    public void addKoala(@RequestBody Koala koala){
+    public Koala addKoala(@RequestBody Koala koala){
+        //null check
+        if(koala.getId() <= 0 || koala.getName() == null
+        || koala.getWeight() <= 0 || koala.getSleepHour() <= 0
+        || koala.getGender() == null){
+            throw new ZooException("Invalid koala data", HttpStatus.BAD_REQUEST);
+        }
         koalas.put(koala.getId(), koala);
+        return koala;
     }
 
     @PutMapping("/{id}")
-    public void updateKoala(@PathVariable int id, @RequestBody Koala koala){
+    public Koala updateKoala(@PathVariable int id, @RequestBody Koala koala){
         koalas.replace(koala.getId(), koala);
+        return koala;
     }
 
     @DeleteMapping("/{id}")
-    public void deleteKoala(@PathVariable int id){
+    public ResponseEntity<KoalaResponse> deleteKoala(@PathVariable int id){
+        if(id <= 0){
+            throw new ZooException("Id cannot be negative", HttpStatus.BAD_REQUEST);
+        }
+        if(!koalas.containsKey(id)){
+            throw new ZooException("Id doesn't exist", HttpStatus.NOT_FOUND);
+        }
         koalas.remove(id);
+        return new ResponseEntity<>(new KoalaResponse(id, "is deleted"), HttpStatus.OK);
     }
 }
